@@ -14,6 +14,7 @@ A lightweight, completely dynamic progression utility that lets you customize yo
 
 ## ⚙️ Requirements
 * **BepInEx pack for Valheim**
+* **ConditionalConfigSync**
 * **Official BepInEx Configuration Manager** (Highly recommended to gain access to the interactive UI sliders inside the game via the `F1` or `Pause` hotkey).
 
 ## 🚀 Installation
