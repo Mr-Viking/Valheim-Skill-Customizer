@@ -17,6 +17,7 @@ namespace ValheimSkillCustomizer
         private readonly Harmony harmony = new Harmony(ModGUID);
 
         // Configuration Entries
+        public static ConfigEntry<bool> IsConfigLocked;
         public static ConfigEntry<bool> ModEnabled;
         public static ConfigEntry<DeathPenaltyMode> DeathPenaltySetting;
         public static ConfigEntry<float> GlobalXpMultiplier;
@@ -33,31 +34,37 @@ namespace ValheimSkillCustomizer
 
         private void Awake()
         {
-            ModEnabled = Config.Bind(
+            // --- 0. Master Settings / Locking ---
+            ConfigurationManagerAttributes lockAttributes = new ConfigurationManagerAttributes { Order = 210 };
+            IsConfigLocked = Config.Bind(
+                "0. Master Settings (Made by viking)",
+                "Lock Configuration",
+                true,
+                new ConfigDescription("If true, configuration settings will be locked to server-side values via ConditionalConfigSync for non-admin players.", null, lockAttributes)
+            );
+
+            ModEnabled = BindConfig(
                 "0. Master Settings (Made by viking)",
                 "Mod Enabled",
                 true,
-                new ConfigDescription("Enable or disable this mod's entire functionality completely. [Default: True]", null, new ConfigurationManagerAttributes { Order = 200 })
+                "Enable or disable this mod's entire functionality completely. [Synced with Server]",
+                200
             );
 
-            ModEnabled.SettingChanged += (sender, args) => { };
-
-            DeathPenaltySetting = Config.Bind(
+            DeathPenaltySetting = BindConfig(
                 "1. Death Penalty",
                 "Skill Drain Modifier",
                 DeathPenaltyMode.NormalSkillDrain,
-                new ConfigDescription("Choose how much skill XP you lose upon death. [Default: NormalSkillDrain]", null, new ConfigurationManagerAttributes { Order = 100 })
+                "Choose how much skill XP you lose upon death. [Synced with Server]",
+                100
             );
 
-            GlobalXpMultiplier = Config.Bind(
+            GlobalXpMultiplier = BindConfigRange(
                 "2. Global XP Modifier",
                 "All Skills Global Multiplier",
                 1.0f,
-                new ConfigDescription(
-                    "Global multiplier stacked on top of individual skill settings. [Default: 1.0]",
-                    new AcceptableValueRange<float>(0f, 10f),
-                    new ConfigurationManagerAttributes { ShowRangeAsPercent = false, Order = 99 }
-                )
+                "Global multiplier stacked on top of individual skill settings. [Synced with Server]",
+                99
             );
             BindStepEnforcer(GlobalXpMultiplier);
 
@@ -68,15 +75,12 @@ namespace ValheimSkillCustomizer
 
                 string skillName = skillType.ToString();
 
-                ConfigEntry<float> skillConfig = Config.Bind(
+                ConfigEntry<float> skillConfig = BindConfigRange(
                     "3. Individual Skill Multipliers",
                     $"{skillName} XP Multiplier",
                     1.0f,
-                    new ConfigDescription(
-                        $"{skillName} experience point multiplier. [Default: 1.0]",
-                        new AcceptableValueRange<float>(0f, 10f),
-                        new ConfigurationManagerAttributes { ShowRangeAsPercent = false, Order = orderTracker-- }
-                    )
+                    $"{skillName} experience point multiplier. [Synced with Server]",
+                    orderTracker--
                 );
 
                 BindStepEnforcer(skillConfig);
@@ -84,8 +88,21 @@ namespace ValheimSkillCustomizer
             }
 
             harmony.PatchAll();
-
             Logger.LogInfo($"{ModName} loaded successfully! Made by Viking.");
+        }
+
+        // FIXED: Using concrete explicitly-typed objects to ensure C# 7.3 runtime stability
+        private ConfigEntry<T> BindConfig<T>(string group, string name, T value, string description, int order)
+        {
+            ConfigurationManagerAttributes attributes = new ConfigurationManagerAttributes { Order = order };
+            return Config.Bind(group, name, value, new ConfigDescription(description, null, attributes));
+        }
+
+        // FIXED: Replaced anonymous types with explicit class declarations
+        private ConfigEntry<float> BindConfigRange(string group, string name, float value, string description, int order)
+        {
+            ConfigurationManagerAttributes attributes = new ConfigurationManagerAttributes { Order = order, ShowRangeAsPercent = false };
+            return Config.Bind(group, name, value, new ConfigDescription(description, new AcceptableValueRange<float>(0f, 10f), attributes));
         }
 
         private void BindStepEnforcer(ConfigEntry<float> configEntry)
@@ -101,7 +118,6 @@ namespace ValheimSkillCustomizer
         }
 
         // --- HARMONY PATCHES ---
-
         [HarmonyPatch(typeof(Skills), nameof(Skills.RaiseSkill))]
         static class Patch_RaiseSkill
         {
@@ -183,7 +199,9 @@ namespace ValheimSkillCustomizer
 
     public class ConfigurationManagerAttributes
     {
+        public bool? Browsable;
         public bool? ShowRangeAsPercent;
         public int? Order;
     }
 }
+
