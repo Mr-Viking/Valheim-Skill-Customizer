@@ -11,7 +11,7 @@ A lightweight, completely dynamic progression utility that lets you customize yo
   * **Half Skill Drain** (Lose 2.5% on death)
   * **Normal Skill Drain** (Vanilla default 5% loss)
   * **Double Skill Drain** (Lose 10% on death)
-* **Uses ServerSync to lock settings and sync settings to all clients**
+* **Uses ServerSync to lock settings and sync settings to all clients.**
   
 ## ⚙️ Requirements
 * **BepInEx pack for Valheim**
