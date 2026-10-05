@@ -1,6 +1,7 @@
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using ServerSync; // Added ServerSync namespace
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,9 +13,17 @@ namespace ValheimSkillCustomizer
     {
         private const string ModGUID = "com.viking.valheimskillcustomizer";
         private const string ModName = "Valheim Skill Customizer";
-        private const string ModVersion = "1.2.0";
+        private const string ModVersion = "1.4.0";
 
         private readonly Harmony harmony = new Harmony(ModGUID);
+
+        // --- ServerSync Setup ---
+        private static readonly ConfigSync ConfigSync = new ConfigSync(ModGUID)
+        {
+            DisplayName = ModName,
+            CurrentVersion = ModVersion,
+            MinimumRequiredVersion = ModVersion
+        };
 
         // Configuration Entries
         public static ConfigEntry<bool> IsConfigLocked;
@@ -42,6 +51,9 @@ namespace ValheimSkillCustomizer
                 true,
                 new ConfigDescription("If true, configuration settings will be locked to server-side values via ConditionalConfigSync for non-admin players.", null, lockAttributes)
             );
+
+            // Bind the configuration lock directly to ServerSync
+            ConfigSync.AddLockingConfigEntry(IsConfigLocked);
 
             ModEnabled = BindConfig(
                 "0. Master Settings (Made by viking)",
@@ -91,18 +103,28 @@ namespace ValheimSkillCustomizer
             Logger.LogInfo($"{ModName} loaded successfully! Made by Viking.");
         }
 
-        // FIXED: Using concrete explicitly-typed objects to ensure C# 7.3 runtime stability
         private ConfigEntry<T> BindConfig<T>(string group, string name, T value, string description, int order)
         {
             ConfigurationManagerAttributes attributes = new ConfigurationManagerAttributes { Order = order };
-            return Config.Bind(group, name, value, new ConfigDescription(description, null, attributes));
+            ConfigEntry<T> configEntry = Config.Bind(group, name, value, new ConfigDescription(description, null, attributes));
+
+            // Sync the bound entry using ServerSync
+            SyncedConfigEntry<T> syncedEntry = ConfigSync.AddConfigEntry(configEntry);
+            syncedEntry.SynchronizedConfig = true;
+
+            return configEntry;
         }
 
-        // FIXED: Replaced anonymous types with explicit class declarations
         private ConfigEntry<float> BindConfigRange(string group, string name, float value, string description, int order)
         {
             ConfigurationManagerAttributes attributes = new ConfigurationManagerAttributes { Order = order, ShowRangeAsPercent = false };
-            return Config.Bind(group, name, value, new ConfigDescription(description, new AcceptableValueRange<float>(0f, 10f), attributes));
+            ConfigEntry<float> configEntry = Config.Bind(group, name, value, new ConfigDescription(description, new AcceptableValueRange<float>(0f, 10f), attributes));
+
+            // Sync the bound entry using ServerSync
+            SyncedConfigEntry<float> syncedEntry = ConfigSync.AddConfigEntry(configEntry);
+            syncedEntry.SynchronizedConfig = true;
+
+            return configEntry;
         }
 
         private void BindStepEnforcer(ConfigEntry<float> configEntry)
@@ -202,6 +224,7 @@ namespace ValheimSkillCustomizer
         public bool? Browsable;
         public bool? ShowRangeAsPercent;
         public int? Order;
+        // Integrated with ServerSync requirement format
+        public bool? IsAdminOnly;
     }
 }
-
