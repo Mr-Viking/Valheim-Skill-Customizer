@@ -1,0 +1,15 @@
+
+## Version 1.4.0
+
+- Removed ConditionalConfigSync requirement
+- Added serversync
+
+## Version 1.3.0
+
+- Migrated networking framework from legacy embedded libraries to an optimized **ConditionalConfigSync** implementation.
+- Added a dedicated **"Lock Configuration"** master switch to protect multipliers from client-side overrides.
+- Implemented a structural **"Mod Enabled"** fallback handler to clean up skill calculations when the customizer is deactivated.
+
+## Fixed
+
+- Replaced unstable runtime anonymous type objects within configuration definitions with explicit, strictly typed layouts to fix initialization crashes during boot sequences.
